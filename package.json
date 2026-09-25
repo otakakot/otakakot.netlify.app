@@ -12,6 +12,7 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@netlify/identity": "^2.0.0",
     "astro": "^7.3.5"
   },
   "allowScripts": {
