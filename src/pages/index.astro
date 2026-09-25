@@ -1,4 +1,16 @@
 ---
+import { Image } from 'astro:assets';
+import '../styles/index.css';
+import part1 from '../assets/gopher-part-1.png';
+import part2 from '../assets/gopher-part-2.png';
+import part3 from '../assets/gopher-part-3.png';
+import part4 from '../assets/gopher-part-4.png';
+
+const gopherParts = [part1, part2, part3, part4];
+const parts = Array.from({ length: 18 }, (_, index) => ({
+	src: gopherParts[index % gopherParts.length],
+	size: 125 + ((index * 29) % 64),
+}));
 ---
 
 <!doctype html>
@@ -8,120 +20,74 @@
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
 		<meta name="description" content="Netlify Identity のログイン" />
+		<link rel="icon" type="image/png" href="/favicon.png" />
 		<title>ログイン | otakakot</title>
-		<style>
-			:root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #18211f; background: #f4f5f2; }
-			* { box-sizing: border-box; }
-			body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 24px; }
-			main { width: min(100%, 420px); padding: 40px; border: 1px solid #e1e5df; border-radius: 18px; background: #fff; box-shadow: 0 18px 55px #1420180c; }
-			h1 { margin: 0 0 8px; font-size: 1.55rem; letter-spacing: -.03em; }
-			p { color: #68736d; line-height: 1.7; }
-			label { display: block; margin-top: 18px; font-size: .9rem; font-weight: 600; }
-			input { display: block; width: 100%; margin-top: 7px; padding: 12px; border: 1px solid #cfd7d1; border-radius: 8px; font: inherit; }
-			button { width: 100%; margin-top: 20px; padding: 13px 18px; border: 0; border-radius: 9px; background: #173d30; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
-			button:hover { background: #245843; }
-			button:disabled { opacity: .65; cursor: wait; }
-			#message { min-height: 1.5em; margin-bottom: 0; color: #a33232; }
-			[hidden] { display: none !important; }
-			@media (max-width: 480px) { main { padding: 28px 22px; } }
-		</style>
 	</head>
 	<body>
-		<main>
-			<section id="signed-out">
-				<h1>ログイン</h1>
-				<p>招待されたアカウントでログインしてください。</p>
-				<form id="login-form">
-					<label>メールアドレス<input name="email" type="email" autocomplete="username" required /></label>
-					<label>パスワード<input name="password" type="password" autocomplete="current-password" required /></label>
-					<button id="login" type="submit">ログインする</button>
-					<p id="message" role="status" aria-live="polite"></p>
-				</form>
-			</section>
-			<section id="signed-in" hidden>
-				<h1>ログイン済み</h1>
-				<p><span id="user-email"></span> としてログインしています。</p>
-				<button id="logout" type="button">ログアウト</button>
-			</section>
-			<section id="accept-invite" hidden>
-				<h1>招待を承認</h1>
-				<p>招待されたアカウントのパスワードを設定してください。</p>
-				<form id="invite-form">
-					<label>パスワード<input name="password" type="password" autocomplete="new-password" minlength="8" required /></label>
-					<button id="accept" type="submit">パスワードを設定</button>
-					<p id="invite-message" role="status" aria-live="polite"></p>
-				</form>
-			</section>
-		</main>
-		<script>
-			import { acceptInvite, getUser, handleAuthCallback, login, logout } from '@netlify/identity';
-
-			const signedOut = document.querySelector('#signed-out');
-			const signedIn = document.querySelector('#signed-in');
-			const acceptInviteSection = document.querySelector('#accept-invite');
-			const email = document.querySelector('#user-email');
-			const form = document.querySelector('#login-form');
-			const submit = document.querySelector('#login');
-			const message = document.querySelector('#message');
-			const inviteForm = document.querySelector('#invite-form');
-			const inviteMessage = document.querySelector('#invite-message');
-			let inviteToken = null;
-			const update = (user) => {
-				signedOut.hidden = Boolean(user);
-				signedIn.hidden = !user;
-				if (user) acceptInviteSection.hidden = true;
-				if (user) email.textContent = user.email;
-			};
-
-			try {
-				const callback = await handleAuthCallback();
-				if (callback?.type === 'invite' && callback.token) {
-					inviteToken = callback.token;
-					signedOut.hidden = true;
-					acceptInviteSection.hidden = false;
-				} else {
-					update(await getUser());
-				}
-			} catch {
-				message.textContent = '招待リンクを確認できませんでした。リンクを開き直してください。';
+		<div class="background-parts" aria-hidden="true">
+			{
+				parts.map((part) => (
+					<Image
+						class="part"
+						src={part.src}
+						alt=""
+						width={part.size}
+						height={Math.round((part.size * 382) / 380)}
+						format="webp"
+						quality={75}
+						loading="eager"
+						decoding="async"
+						style={`width:${part.size}px;height:auto`}
+					/>
+				))
 			}
-
-			form.addEventListener('submit', async (event) => {
-				event.preventDefault();
-				message.textContent = '';
-				submit.disabled = true;
-				try {
-					const data = new FormData(form);
-					update(await login(String(data.get('email')), String(data.get('password'))));
-				} catch {
-					message.textContent = 'ログインできませんでした。入力内容をご確認ください。';
-				} finally {
-					submit.disabled = false;
-				}
-			});
-			inviteForm.addEventListener('submit', async (event) => {
-				event.preventDefault();
-				inviteMessage.textContent = '';
-				if (!inviteToken) {
-					inviteMessage.textContent = '招待リンクの有効期限が切れた可能性があります。管理者に再招待を依頼してください。';
-					return;
-				}
-				const acceptButton = document.querySelector('#accept');
-				acceptButton.disabled = true;
-				try {
-					const data = new FormData(inviteForm);
-					update(await acceptInvite(inviteToken, String(data.get('password'))));
-					inviteToken = null;
-				} catch {
-					inviteMessage.textContent = '招待を承認できませんでした。パスワードを確認してください。';
-				} finally {
-					acceptButton.disabled = false;
-				}
-			});
-			document.querySelector('#logout').addEventListener('click', async () => {
-				await logout();
-				update(null);
+		</div>
+		<script is:inline>
+			const columns = 6;
+			const rows = 3;
+			document.querySelectorAll('.background-parts .part').forEach((image, index) => {
+				image.style.left = `${(((index % columns) + Math.random()) / columns) * 100}%`;
+				image.style.top = `${((Math.floor(index / columns) + Math.random()) / rows) * 100}%`;
 			});
 		</script>
+		<div class="center">
+			<div class="stack">
+				<main>
+					<section id="signed-out">
+						<form id="login-form">
+							<label>
+								メールアドレス
+								<input name="email" type="email" autocomplete="username" required />
+							</label>
+							<label>
+								パスワード
+								<input name="password" type="password" autocomplete="current-password" required />
+							</label>
+							<button id="login" type="submit">ログイン</button>
+							<p id="message" role="status" aria-live="polite"></p>
+						</form>
+					</section>
+					<section id="signed-in" hidden>
+						<h2>ログイン済み</h2>
+						<p><span id="user-email"></span> としてログインしています。</p>
+						<button id="logout" type="button">ログアウト</button>
+					</section>
+					<section id="accept-invite" hidden>
+						<h2>招待を承認</h2>
+						<p>招待されたアカウントのパスワードを設定してください。</p>
+						<form id="invite-form">
+							<label>
+								パスワード
+								<input name="password" type="password" autocomplete="new-password" minlength="8" required />
+							</label>
+							<button id="accept" type="submit">パスワードを設定</button>
+							<p id="invite-message" role="status" aria-live="polite"></p>
+						</form>
+					</section>
+				</main>
+				<p class="credit">The <a href="https://go.dev/blog/gopher" target="_blank" rel="noopener noreferrer">Go gopher</a> was designed by <a href="https://reneefrench.blogspot.com/" target="_blank" rel="noopener noreferrer">Renée French</a>.</p>
+			</div>
+		</div>
+		<script src="../scripts/index.ts"></script>
 	</body>
 </html>
